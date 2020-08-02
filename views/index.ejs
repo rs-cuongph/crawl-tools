@@ -3,7 +3,11 @@
   <meta charset="utf-8" />
   <title>App</title>
   <head>
-    <link type="text/css" rel="stylesheet" href="/assets/css/common.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+    <script src="//cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+    <!-- <link type="text/css" rel="stylesheet" href="/assets/css/common.css" /> -->
     <style>
       .container .header {
         width: 100%;
@@ -23,24 +27,41 @@
       }
       .input-link-crawl {
         padding-top: 20px;
-        display: flex;
-        justify-content: center;
+        margin: 0 auto;
+        width: fit-content;
       }
-      .input-link-crawl input {
+      .input-content {
+        padding-top: 5px;
+      }
+      .input-content input[type="text"] {
         height: 30px;
         width: 40vh;
       }
+      .btn-database {
+        background-color: aqua;
+      }
       .input-link-crawl button {
+        border: 1px solid;
         height: 35px;
         margin-left: 15px;
-        width: 100px;
+        width: auto;
       }
       .log-screen {
+        overflow: auto;
         height: 60vh;
-        margin-top: 50px;
+        width: 80%;
+        margin: 50px auto;
         background: darkslategrey;
       }
+      .log-screen p:first-child {
+        margin-top: 20px;
+      }
+      .log-screen p:last-child {
+        margin-bottom: 20px;
+      }
       .log-screen p {
+        padding-left: 25px;
+        margin: 0;
         color: white;
       }
     </style>
@@ -53,17 +74,54 @@
         </h2>
       </div>
       <div class="body">
+        
         <div class="input-link-crawl">
-          <input type="text" name="link-crawl" value="" />
-          <button class="btn-crawl">START</button>
+          <div class="option">
+            <input type="checkbox" name="headless"/>
+            <label for="headless">Ẩn Browser</label>
+          </div>
+          <div class="input-content">
+            <input type="text" name="link-crawl" value="" placeholder="điền link bạn muốn cào dữ liệu" required="true"/>
+            <button class="btn-crawl" action="start" >START</button>
+            <button class="btn-database">View Data Crawled</button>
+          </div>
         </div>
         <div class="log-screen">
-          <% for(var i = 0; i < 100; i++) { %>
-          <p>aaaaaaaaaaaaa</p>
-          <% } %>
+          
         </div>
       </div>
       <div class="footer"></div>
     </div>
+    <script>
+      $('.btn-crawl').on('click', function() {
+        const action = $(this).attr('action');
+        $.ajax({
+          method: 'POST',
+          url: 'http://localhost:3000/tool/start',
+          data: {
+            url: $('input[name="link-crawl"]').val(),
+            headless: $('input[name="headless"]').is(':checked'),
+            action: action
+          }
+        });
+        // if(action == 'stop') {
+        //   $('.btn-crawl').text('START');
+        //   $(this).attr('action','start');
+        // } 
+        // else {
+        //   $('.btn-crawl').text('STOP');
+        //   $(this).attr('action','stop');
+        // };
+      })
+      var ws = new WebSocket('ws://localhost:3001');
+      ws.onopen = function () {
+        console.log('OPEN');
+        ws.send('hahahaa');
+      }
+      ws.onmessage = function (res) {
+        console.log(res);
+        $('.log-screen').append(`<p> - ${res.data}</p>`);
+      }
+    </script>
   </body>
 </html>

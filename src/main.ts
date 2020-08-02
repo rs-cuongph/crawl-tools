@@ -10,5 +10,6 @@ async function bootstrap() {
   app.use(bodyParser.json());
   app.setViewEngine('ejs');
   await app.listen(3000);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
