@@ -33,7 +33,7 @@
       .input-content {
         padding-top: 5px;
       }
-      .input-content input[type="text"] {
+      .input-content input[type='text'] {
         height: 30px;
         width: 40vh;
       }
@@ -74,21 +74,25 @@
         </h2>
       </div>
       <div class="body">
-        
         <div class="input-link-crawl">
           <div class="option">
-            <input type="checkbox" name="headless"/>
+            <input type="checkbox" name="headless" />
             <label for="headless">Ẩn Browser</label>
           </div>
           <div class="input-content">
-            <input type="text" name="link-crawl" value="" placeholder="điền link bạn muốn cào dữ liệu" required="true"/>
-            <button class="btn-crawl" action="start" >START</button>
+            <input
+              type="text"
+              name="link-crawl"
+              value="http://truyenchon.com/"
+              readonly="true"
+              placeholder="điền link bạn muốn cào dữ liệu"
+              required="true"
+            />
+            <button class="btn-crawl" action="start">START</button>
             <button class="btn-database">View Data Crawled</button>
           </div>
         </div>
-        <div class="log-screen">
-          
-        </div>
+        <div class="log-screen"></div>
       </div>
       <div class="footer"></div>
     </div>
@@ -101,27 +105,27 @@
           data: {
             url: $('input[name="link-crawl"]').val(),
             headless: $('input[name="headless"]').is(':checked'),
-            action: action
-          }
+            action: action,
+          },
         });
         // if(action == 'stop') {
         //   $('.btn-crawl').text('START');
         //   $(this).attr('action','start');
-        // } 
+        // }
         // else {
         //   $('.btn-crawl').text('STOP');
         //   $(this).attr('action','stop');
         // };
-      })
+      });
       var ws = new WebSocket('ws://localhost:3001');
-      ws.onopen = function () {
+      ws.onopen = function() {
         console.log('OPEN');
         ws.send('hahahaa');
-      }
-      ws.onmessage = function (res) {
+      };
+      ws.onmessage = function(res) {
         console.log(res);
         $('.log-screen').append(`<p> - ${res.data}</p>`);
-      }
+      };
     </script>
   </body>
 </html>
