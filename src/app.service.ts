@@ -26,7 +26,7 @@ export class AppService {
     LogSubscribe.next('Go to website: ' + options.url);
     await page.goto(options.url);
     // await page.waitForNavigation({ waitUntil: 'networkidle0' });
-    await this.step1(page);
+    // await this.step1(page);
     await this.step2(page);
     // const listCateDom = await page.evaluate(() => {
     //   // return document.body.querySelectorAll('.dropdown-menu.megamenu li div.clearfix');
@@ -89,34 +89,32 @@ export class AppService {
           element => element.textContent,
           elDescription,
         );
-        console.log('AppService -> constructor -> description', description);
-        await this.cateService.createOrUpdate(cate['name'], {
-          description: description,
-          updated_at: moment()
-            .local()
-            .format('YYYY-MM-DDTHH:mm:ss.sssZ'),
-        });
-
+        // console.log('AppService -> constructor -> description', description);
+        // await this.cateService.createOrUpdate(cate['name'], {
+        //   description: description,
+        //   updated_at: moment()
+        //     .local()
+        //     .format('YYYY-MM-DDTHH:mm:ss.sssZ'),
+        // });
+        await this.step3(page);
         await page.waitFor(1000);
       }
       temp++;
     }
   }
   //get information story
-  async step3(page) {}
-  // await page.waitForNavigation();
-  // const description = await page.$eval(
-  //   '.description .info',
-  //   el => el.textContent,
-  // );
-  // console.log('AppService -> constructor -> description', description);
-
-  // console.log('AppService -> constructor -> resultFind', resultFind);
-  // if (resultFind) {
-  //   await this.cateService.update(resultFind['_id'], {
-  //     name: text.trim(),
-  //   });
-  // } else {
-
-  // }
+  async step3(page) {;
+    page.on('console', msg => {
+      for (let i = 0; i < msg.args.length; ++i)
+        console.log(`${i}: ${msg.args[i]}`);
+    });
+    await page.evaluate(() => {
+      
+      document.querySelectorAll('.item .image').forEach(element => {
+        const title = element.querySelector('a').title.replace('Truyện tranh', '');
+        const banner = element.querySelector('a img')['src'];
+        console.log(title, banner);
+      })
+    })
+  } 
 }

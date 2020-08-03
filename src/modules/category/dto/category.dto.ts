@@ -1,6 +1,9 @@
+import { Story } from "src/modules/story/schema/story.schema";
+
 export class CateDto {
-    readonly name?: string;
-    readonly description?: string;
-    readonly updated_at?: string;
+    name?: string;
+    storys?: Array<Story>;
+    description?: string;
+    updated_at?: string;
 }
 
