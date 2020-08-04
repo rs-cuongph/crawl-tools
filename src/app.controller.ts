@@ -28,6 +28,6 @@ export class AppController {
     res.status(201).json({
       status: 200
     })
-    await this.appService.saveCate(options);
+    await this.appService.step0(options);
   }
 }

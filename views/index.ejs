@@ -119,13 +119,16 @@
       });
       var ws = new WebSocket('ws://localhost:3001');
       ws.onopen = function() {
-        console.log('OPEN');
-        ws.send('hahahaa');
+        ws.send('test connect');
       };
-      ws.onmessage = function(res) {
-        console.log(res);
+      ws.onmessage = async function(res) {
         $('.log-screen').append(`<p> - ${res.data}</p>`);
+        await scrollDown();
       };
+      const scrollDown = async () => {
+        document.querySelector('.log-screen p:last-child')
+          .scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' });
+      }
     </script>
   </body>
 </html>
