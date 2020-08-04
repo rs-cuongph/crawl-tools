@@ -10,7 +10,6 @@ export class CategoryService {
 
   async createOrUpdate(name: string, obj: any) {
     const findResult = await this.find(name);
-    console.log('CategoryService -> createOrUpdate -> findResult', findResult);
     if (findResult) {
       return this.update(findResult._id, obj);
     } else {
@@ -23,7 +22,6 @@ export class CategoryService {
   async create(CateObj: CateDto): Promise<CategoryInterface> {
     const createdCate = new this.cateModel(CateObj);
     const saveCate = await createdCate.save();
-    console.log(saveCate);
     return saveCate.toObject({ versionKey: false });
   }
 
