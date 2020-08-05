@@ -16,30 +16,42 @@ export class AppService {
     private storyService: StoryService,
     private chapterService: ChapterService,
   ) {}
-  getHello(): string {
-    return 'Hello World!';
-  }
 
-  async step0(options) {
+  async getCate(options) {
+    try {
+      await this.initBrowser(options);
+      await this.step1();
+      return this.cateService.findAll();
+    } catch (err) {
+      LogSubscribe.next('đã có lỗi xảy ra: ' + err);
+      if (this.browser) await this.browser.close();
+    }
+  }
+  //khởi tại browser
+  async initBrowser(options) {
     this.browser = await pupperteer.launch({
       headless: options.headless === 'true' ? true : false,
       // executablePath: '/usr/bin/google-chrome'
     });
+    LogSubscribe.next('Mở chromenium');
+    this.page = await this.browser.newPage();
+    this.page.on('console', msg => {
+      for (let i = 0; i < msg.args.length; ++i)
+        console.log(`${i}: ${msg.args[i]}`);
+    });
+    LogSubscribe.next('đi đến link: ' + options.url);
+    await this.page.goto(options.url);
+  }
+  async step0(options) {
     try {
-      LogSubscribe.next('Mở chromenium');
-      this.page = await this.browser.newPage();
-      this.page.on('console', msg => {
-        for (let i = 0; i < msg.args.length; ++i)
-          console.log(`${i}: ${msg.args[i]}`);
-      });
-      LogSubscribe.next('đi đến link: ' + options.url);
-      await this.page.goto(options.url);
-      await this.step1();
-      await this.step2();
+      // this.initBrowser(options);
+      // await this.step1();
+      await this.step2(options.category);
       LogSubscribe.next('thu thập dữ liệu hoàn tất. đóng browser');
       await this.browser.close();
-    } catch(e) {
-      LogSubscribe.next('đã có lỗi xảy ra: ' + e);
+    } catch (err) {
+      LogSubscribe.next('đã có lỗi xảy ra: ' + err);
+      if (this.browser) await this.browser.close();
     }
   }
   //save Category
@@ -66,34 +78,31 @@ export class AppService {
     } catch (e) {}
   }
   //get story
-  async step2() {
+  async step2(arrCateDB: [string]) {
     return new Promise<any>(async resolve => {
-      const arrCateDB = await this.cateService.findAll();
-      // let temp = 0;
+      let temp = 0;
       for (const cate of arrCateDB) {
         // if (temp === 0) {
-          LogSubscribe.next(`Cập nhật chi tiết cho thể loại ${cate['name']}`)
-          await this.page.waitForSelector('.dropdown');
-          await this.page.hover('.dropdown');
-          await this.page.waitForSelector('.dropdown.open');
-          const elWithText = await this.page.$x(
-            `//a[contains(., "${cate['name']}")]`,
-          );
-          elWithText[0].click();
-          await this.page.waitForSelector('.description .info');
-          const elDescription = await this.page.$('.description .info');
-          const description = await this.page.evaluate(
-            element => element.textContent,
-            elDescription,
-          );
-          const category = await this.cateService.createOrUpdate(cate['name'], {
-            description: description,
-            updated_at: moment()
-              .local()
-              .format('YYYY-MM-DDTHH:mm:ss.sssZ'),
-          });
-          await this.step3(category._id);
-          await this.page.waitFor(1000);
+        LogSubscribe.next(`Cập nhật chi tiết cho thể loại ${cate}`);
+        await this.page.waitForSelector('.dropdown');
+        await this.page.hover('.dropdown');
+        await this.page.waitForSelector('.dropdown.open');
+        const elWithText = await this.page.$x(`//a[contains(., "${cate}")]`);
+        elWithText[0].click();
+        await this.page.waitForSelector('.description .info');
+        const elDescription = await this.page.$('.description .info');
+        const description = await this.page.evaluate(
+          element => element.textContent,
+          elDescription,
+        );
+        const category = await this.cateService.createOrUpdate(cate, {
+          description: description,
+          updated_at: moment()
+            .local()
+            .format('YYYY-MM-DDTHH:mm:ss.sssZ'),
+        });
+        await this.step3(category._id);
+        await this.page.waitFor(1000);
         // }
         // temp++;
       }
@@ -102,46 +111,62 @@ export class AppService {
   }
   //get information story
   async step3(idCate) {
-    const currentPage = await this.page.$eval(
-      '.pagination li.active',
-      el => el.innerText,
-    );
-    const stories = await this.page.evaluate(() => {
-      const arr = [];
-      document.querySelectorAll('.item .image').forEach(async element => {
-        const name = element
-          .querySelector('a')
-          .title.replace('Truyện tranh', '');
-        const banner = element
-          .querySelector('a img')
-          .getAttribute('data-original');
-        const link = element.querySelector('a').href;
-        arr.push({
-          name,
-          banner,
-          link,
+    let stopNextPage = false;
+    while (!stopNextPage) {
+      await this.page.waitForSelector('.ModuleContent .items', {
+        timeout: 30000,
+      });
+      await this.page.waitForSelector('.pagination li.active', {
+        timeout: 30000,
+      });
+      const currentPage = await this.page.$eval(
+        '.pagination li.active',
+        el => el.innerText,
+      );
+      stopNextPage =
+        (await this.page.$('.pagination li .next-page')) !== null
+          ? false
+          : true;
+      const stories = await this.page.evaluate(() => {
+        const arr = [];
+        document.querySelectorAll('.item .image').forEach(async element => {
+          const name = element
+            .querySelector('a')
+            .title.replace('Truyện tranh', '');
+          const banner = element
+            .querySelector('a img')
+            .getAttribute('data-original');
+          const link = element.querySelector('a').href;
+          arr.push({
+            name,
+            banner,
+            link,
+          });
         });
-      });
 
-      return arr;
-    });
-    for (let i = 0; i <= Math.floor(stories.length / this.loop) ; i++) {
-      await new Promise(async resolve => {
-        const listPromise = [];
-        if (i == Math.floor(stories.length / this.loop)) {
-          for (let j = 0; j < stories.length % this.loop; j++) {
-            console.log(stories[i * 5 + j], i * 5 + j);
-            listPromise.push(this.step4(stories[i * 5 + j], idCate));
-          }
-        } else {
-          for (let j = 0; j < this.loop; j++) {
-            console.log(stories[i * 5 + j], i * 5 + j);
-            listPromise.push(this.step4(stories[i * 5 + j], idCate));
-          }
-        }
-        await Promise.all(listPromise);
-        resolve('step3: done');
+        return arr;
       });
+      // Math.floor(stories.length / this.loop)
+      for (let i = 0; i <= Math.floor(stories.length / this.loop); i++) {
+        await new Promise(async resolve => {
+          const listPromise = [];
+          if (i == Math.floor(stories.length / this.loop)) {
+            for (let j = 0; j < stories.length % this.loop; j++) {
+              console.log(stories[i * 5 + j], i * 5 + j);
+              listPromise.push(this.step4(stories[i * 5 + j], idCate));
+            }
+          } else {
+            for (let j = 0; j < this.loop; j++) {
+              console.log(stories[i * 5 + j], i * 5 + j);
+              listPromise.push(this.step4(stories[i * 5 + j], idCate));
+            }
+          }
+          await Promise.all(listPromise);
+          resolve('step3: done');
+        });
+      }
+      LogSubscribe.next('chuyển tiếp page ' + (parseInt(currentPage) + 1));
+      await this.page.click('.pagination li .next-page');
     }
   }
 
@@ -170,21 +195,23 @@ export class AppService {
         description: dataStory.description,
         status: dataStory.status,
       });
-      console.log('AppService -> story', story);
       LogSubscribe.next(`Đang thu thập số lượng chapter.`);
       const listChapter = await page.evaluate(async story => {
         const list = [];
-        document.querySelectorAll('.list-chapter nav ul li').forEach(element => {
-          if (!element.classList.contains('heading')) {
-            const linkChapter = element.querySelector('.chapter a')['href'];
-            const nameChapter = element.querySelector('.chapter a').textContent;
-            list.push({
-              linkChapter,
-              nameChapter,
-              idStory: story._id,
-            });
-          }
-        });
+        document
+          .querySelectorAll('.list-chapter nav ul li')
+          .forEach(element => {
+            if (!element.classList.contains('heading')) {
+              const linkChapter = element.querySelector('.chapter a')['href'];
+              const nameChapter = element.querySelector('.chapter a')
+                .textContent;
+              list.push({
+                linkChapter,
+                nameChapter,
+                idStory: story._id,
+              });
+            }
+          });
         return list;
       }, story);
       LogSubscribe.next(`Hoàn tất lưu dữ liệu truyện: `);
@@ -192,7 +219,7 @@ export class AppService {
       LogSubscribe.next(`- Số lượng chapter: ${listChapter.length}`);
       for (const index in listChapter.reverse()) {
         await new Promise(async resolve => {
-          await this.step5(listChapter[index]);
+          await this.step5(listChapter[index], story.name);
           resolve();
         });
       }
@@ -201,9 +228,11 @@ export class AppService {
     });
   }
 
-  async step5(dataChapter) {
+  async step5(dataChapter, nameStory) {
     return new Promise(async resolve => {
-      LogSubscribe.next(`Đang thu thập dữ liệu của chapter: ${dataChapter.nameChapter}`);
+      LogSubscribe.next(
+        `Đang thu thập dữ liệu chapter của truyện: ${nameStory}, ${dataChapter.nameChapter}`,
+      );
       const page = await this.browser.newPage();
       await page.goto(dataChapter.linkChapter, {
         waitUntil: 'networkidle0',
@@ -220,7 +249,7 @@ export class AppService {
             const nameImg = element.querySelector('img').getAttribute('alt');
             list.push({ linkImg, nameImg });
           });
-  
+
         return list;
       });
       const saveChapter = await this.chapterService.createOrUpdate(
@@ -234,8 +263,9 @@ export class AppService {
             .format('YYYY-MM-DDTHH:mm:ss.sssZ'),
         },
       );
-      console.log('AppService -> saveChapter', saveChapter);
-      LogSubscribe.next(`hoàn tất thu thập dữ liệu của chapter: ${saveChapter.name}, đóng tab`);
+      LogSubscribe.next(
+        `hoàn tất thu thập dữ liệu chapter của truyện: ${nameStory}, ${saveChapter.name}, đóng tab`,
+      );
       await page.close();
       resolve('step5: done');
     });

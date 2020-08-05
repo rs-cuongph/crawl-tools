@@ -17,6 +17,25 @@
         align-items: center;
         justify-content: center;
       }
+      .none {
+        display: none !important;
+      }
+      .container .background {
+        height: 100%;
+        width: 100%;
+        position: fixed;
+        background: #4c4848;
+        opacity: 0.8;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .option.cate {
+        margin-top: 15px;
+        height: auto;
+        display: grid;
+        grid-template-columns: repeat(3, 33.33%);
+      }
       .container .header h2 {
         color: white;
         font-size: 45px;
@@ -64,10 +83,76 @@
         margin: 0;
         color: white;
       }
+      .lds-ellipsis {
+        display: inline-block;
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .lds-ellipsis div {
+        position: absolute;
+        top: 33px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: #0093fb;
+        animation-timing-function: cubic-bezier(0, 1, 1, 0);
+      }
+      .lds-ellipsis div:nth-child(1) {
+        left: 8px;
+        animation: lds-ellipsis1 0.6s infinite;
+      }
+      .lds-ellipsis div:nth-child(2) {
+        left: 8px;
+        animation: lds-ellipsis2 0.6s infinite;
+      }
+      .lds-ellipsis div:nth-child(3) {
+        left: 32px;
+        animation: lds-ellipsis2 0.6s infinite;
+      }
+      .lds-ellipsis div:nth-child(4) {
+        left: 56px;
+        animation: lds-ellipsis3 0.6s infinite;
+      }
+      @keyframes lds-ellipsis1 {
+        0% {
+          transform: scale(0);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+      @keyframes lds-ellipsis3 {
+        0% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(0);
+        }
+      }
+      @keyframes lds-ellipsis2 {
+        0% {
+          transform: translate(0, 0);
+        }
+        100% {
+          transform: translate(24px, 0);
+        }
+      }
+      .option p {
+        margin: 0;
+      }
     </style>
   </head>
   <body>
     <div class="container">
+      <div class="none background">
+        <div class="lds-ellipsis">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
       <div class="header">
         <h2>
           CRAWL TOOL
@@ -88,8 +173,17 @@
               placeholder="điền link bạn muốn cào dữ liệu"
               required="true"
             />
-            <button class="btn-crawl" action="start">START</button>
+            <button class="btn-crawl" action="get-cate">
+              Thu thập danh mục
+            </button>
+            <button class="btn-crawl none" action="start">START</button>
             <button class="btn-database">View Data Crawled</button>
+          </div>
+          <div class="option cate none">
+            <p>
+              <input type="checkbox" name="allCate" value="all" checked />
+              <label for="allCate">All</label>
+            </p>
           </div>
         </div>
         <div class="log-screen"></div>
@@ -97,38 +191,92 @@
       <div class="footer"></div>
     </div>
     <script>
-      $('.btn-crawl').on('click', function() {
-        const action = $(this).attr('action');
+      let cate = [];
+      $('.btn-crawl[action="get-cate"]').on('click', function() {
+        $('.background').removeClass('none');
         $.ajax({
           method: 'POST',
-          url: 'http://localhost:3000/tool/start',
+          url: window.location.href + 'tool/get-cate',
           data: {
             url: $('input[name="link-crawl"]').val(),
             headless: $('input[name="headless"]').is(':checked'),
-            action: action,
+          },
+          success: data => {
+            $('.option').removeClass('none');
+            $('.btn-crawl[action="start"]').removeClass('none');
+            $('.btn-crawl[action="get-cate"]').addClass('none');
+            $('.background').addClass('none');
+            console.log(data.data);
+            for (let [index, item] of data.data.entries()) {
+              cate.push(item.name);
+              $('.option.cate')
+                .append(`<p><input type="checkbox" class="cateSelect" name="Cate[${index}]" value="${item.name}" checked onchange="selectCate(event)"/>
+              <label for="Cate[${index}]">${item.name}</label></p>`);
+            }
           },
         });
-        // if(action == 'stop') {
-        //   $('.btn-crawl').text('START');
-        //   $(this).attr('action','start');
-        // }
-        // else {
-        //   $('.btn-crawl').text('STOP');
-        //   $(this).attr('action','stop');
-        // };
       });
+      $('.btn-crawl[action="start').on('click', function() {
+        const action = $(this).attr('action');
+        $('.btn-crawl[action="start')[0].setAttribute('disabled', true);
+        $.ajax({
+          method: 'POST',
+          url: window.location.href + 'tool/start',
+          data: {
+            url: $('input[name="link-crawl"]').val(),
+            headless: $('input[name="headless"]').is(':checked'),
+            category: cate,
+          },
+          success: () => {
+            $('.btn-crawl[action="start')[0].removeAttribute('disabled');
+          },
+        });
+      });
+      $('input[name="allCate"]').change(function() {
+        let checked;
+        if (this.checked) {
+          checked = true;
+        } else {
+          cate = [];
+          checked = false;
+        }
+        let arrInput = $('.option.cate p input.cateSelect');
+        arrInput.each(index => {
+          arrInput[index].checked = checked;
+          if (arrInput[index].checked) {
+            cate.push(arrInput[index].value);
+          } else {
+            removeArr(cate, arrInput[index].value);
+          }
+        });
+      });
+      const selectCate = event => {
+        const target = event.target;
+        if (target.checked) {
+          cate.push(target.value);
+        } else {
+          $('input[name="allCate"]')[0].checked = false;
+          removeArr(cate, target.value);
+        }
+      };
       var ws = new WebSocket('ws://localhost:3001');
-      ws.onopen = function() {
+      ws.onopen = () => {
         ws.send('test connect');
       };
-      ws.onmessage = async function(res) {
+      ws.onmessage = async res => {
+        console.log('res', res);
         $('.log-screen').append(`<p> - ${res.data}</p>`);
         await scrollDown();
       };
+      removeArr = (arr, item) => {
+        let index = arr.indexOf(item);
+        arr.splice(index, 1);
+      };
       const scrollDown = async () => {
-        document.querySelector('.log-screen p:last-child')
+        document
+          .querySelector('.log-screen p:last-child')
           .scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'end' });
-      }
+      };
     </script>
   </body>
 </html>

@@ -8,10 +8,13 @@ import { StoryInterface } from './interface/story.interface';
 @Injectable()
 export class StoryService {
   constructor(@InjectModel('stories') private storyModel: Model<Story>) {}
-  async createOrUpdate(name: string, dataStory: any) {
+  async createOrUpdate(name: string, dataStory: StoryDto) {
     const findResult = await this.find(name);
     console.log('StoryService -> createOrUpdate -> findResult', findResult);
     if (findResult) {
+      if (!findResult.categories.includes(dataStory.categoryId)) {
+        await this.addCateToStory(findResult._id, dataStory.categoryId);
+      }
       return this.update(findResult._id, dataStory);
     } else {
       return this.create(dataStory);
@@ -25,6 +28,7 @@ export class StoryService {
   }
 
   async update(_id: string, dataStory: StoryDto): Promise<StoryInterface> {
+    delete dataStory.categoryId;
     const changes = dataStory;
     return this.storyModel.findOneAndUpdate(
       { _id: _id },
