@@ -145,3 +145,12 @@ export const extractNumber = this.compose(
  */
 export const extractUrlAttribute = attr =>
     this.compose(this.enforceHttpsUrl, this.fetchElemAttribute(attr));
+/**
+ * get total page from url
+ */
+export const getNumberFromUrl = elem => {
+    const url = fetchElemAttribute('href')(elem);
+    if (url.indexOf('page=') != -1) {
+        return url.slice(url.indexOf('page=') + 5, url.length);
+    }
+};

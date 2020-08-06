@@ -17,39 +17,47 @@ export class AppController {
     @Render('index')
     index() {}
 
-    @Post('pupperteer/get-cate')
+    @Post('tool/get-cate')
     async getCate(@Req() req, @Res() res) {
+        let result;
         const options = {
             headless: req.body.headless,
             url: req.body.url,
+            type: req.body.type,
         };
         LogSubscribe.next('Đang thu thập danh sách danh mục');
-        const result = await this.pupperteer.getCate(options);
+        if (req.body.type == 'pupperteer') {
+            result = await this.pupperteer.getCate(options);
+        } else {
+            result = await this.crawService.getCateElements();
+        }
         return res.status(200).json({
             status: 200,
             data: result,
         });
     }
 
-    @Post('pupperteer/start')
+    @Post('tool/start')
     async start(@Req() req, @Res() res) {
         const options = {
             headless: req.body.headless,
             url: req.body.url,
             category: req.body.category,
+            type: req.body.type,
         };
 
         res.status(201).json({
             status: 200,
         });
-        await this.pupperteer.step0(options);
+        if (req.body.type == 'pupperteer') {
+            await this.pupperteer.step0(options);
+        } else {
+            await this.crawService.startCrawl(options.category);
+        }
     }
 
     @Get('test')
     async test(@Res() res) {
-        // sendResponse(res)(this.crawService.crawlCate());
-        this.crawService.initCrawl();
-        // console.log('AppController -> test -> dom', dom);
         res.status(201).json({});
     }
 }

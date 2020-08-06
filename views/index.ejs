@@ -5,6 +5,13 @@
     <head>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <link
+            rel="stylesheet"
+            href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+            integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+            crossorigin="anonymous"
+        />
+
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
         <script src="//cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
         <!-- <link type="text/css" rel="stylesheet" href="/assets/css/common.css" /> -->
@@ -161,8 +168,33 @@
             <div class="body">
                 <div class="input-link-crawl">
                     <div class="option">
-                        <input type="checkbox" name="headless" />
-                        <label for="headless">Ẩn Browser</label>
+                        <div class="input-group mb-3">
+                            <select
+                                class="custom-select"
+                                id="inputGroupSelect02"
+                                name="type"
+                            >
+                                <option value="axios" selected
+                                    >Crawl bằng cách lấy DOM từ http
+                                    request</option
+                                >
+                                <option value="pupperteer"
+                                    >Crawl bằng cách giả lập browser =>
+                                    automatic</option
+                                >
+                            </select>
+                            <div class="input-group-append">
+                                <label
+                                    class="input-group-text"
+                                    for="inputGroupSelect02"
+                                    >Chọn Cách chạy</label
+                                >
+                            </div>
+                        </div>
+                        <div class="none" id="headless">
+                            <input type="checkbox" name="headless" />
+                            <label for="headless">Ẩn Browser</label>
+                        </div>
                     </div>
                     <div class="input-content">
                         <input
@@ -203,17 +235,17 @@
                 $('.background').removeClass('none');
                 $.ajax({
                     method: 'POST',
-                    url: window.location.href + 'pupperteer/get-cate',
+                    url: window.location.href + 'tool/get-cate',
                     data: {
                         url: $('input[name="link-crawl"]').val(),
                         headless: $('input[name="headless"]').is(':checked'),
+                        type: $('select[name="type"]')[0].value,
                     },
                     success: data => {
                         $('.option').removeClass('none');
                         $('.btn-crawl[action="start"]').removeClass('none');
                         $('.btn-crawl[action="get-cate"]').addClass('none');
                         $('.background').addClass('none');
-                        console.log(data.data);
                         for (let [index, item] of data.data.entries()) {
                             cate.push(item.name);
                             $('.option.cate')
@@ -228,11 +260,12 @@
                 $('.btn-crawl[action="start')[0].setAttribute('disabled', true);
                 $.ajax({
                     method: 'POST',
-                    url: window.location.href + 'pupperteer/start',
+                    url: window.location.href + 'tool/start',
                     data: {
                         url: $('input[name="link-crawl"]').val(),
                         headless: $('input[name="headless"]').is(':checked'),
                         category: cate,
+                        type: $('select[name="type"]')[0].value,
                     },
                     success: () => {
                         $('.btn-crawl[action="start')[0].removeAttribute(
@@ -240,6 +273,13 @@
                         );
                     },
                 });
+            });
+            $('select[name="type"]').on('change', function() {
+                if ($(this)[0].value === 'pupperteer') {
+                    $('#headless').removeClass('none');
+                } else {
+                    $('#headless').addClass('none');
+                }
             });
             $('input[name="allCate"]').change(function() {
                 let checked;
