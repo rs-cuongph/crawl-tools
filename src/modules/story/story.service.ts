@@ -10,11 +10,11 @@ export class StoryService {
   constructor(@InjectModel('stories') private storyModel: Model<Story>) {}
   async createOrUpdate(name: string, dataStory: StoryDto) {
     const findResult = await this.find(name);
-    console.log('StoryService -> createOrUpdate -> findResult', findResult);
     if (findResult) {
-      if (!findResult.categories.includes(dataStory.categoryId)) {
-        await this.addCateToStory(findResult._id, dataStory.categoryId);
-      }
+      // console.log(findResult.categories);
+      // if (!findResult.categories.includes(dataStory.categoryId)) {
+      //   await this.addCateToStory(findResult._id, dataStory.categoryId);
+      // }
       return this.update(findResult._id, dataStory);
     } else {
       return this.create(dataStory);
@@ -38,7 +38,7 @@ export class StoryService {
   }
 
   async find(name: string): Promise<StoryInterface> {
-    return this.storyModel.findOne({ name: name });
+    return this.storyModel.findOne({ name: name }).populate('categories');
   }
 
   async findAll(): Promise<StoryInterface[]> {
